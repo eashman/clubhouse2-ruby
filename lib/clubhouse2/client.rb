@@ -19,9 +19,11 @@ module Clubhouse
 		end
 
 		def api_request(method, *params)
+			puts method
+			api_params = *params
+			ap api_params
 			if method == :post
-				api_params = *params
-				ap api_params
+
 				response = HTTParty.post(
 						api_params[:url],
 					 :body => api_params.to_json,
