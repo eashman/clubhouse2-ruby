@@ -5,7 +5,9 @@ require 'httparty'
 
 module Clubhouse
 	class Client
-		
+		include HTTParty
+		debug_output $stdout
+
 		def initialize(api_key:, base_url: 'https://api.clubhouse.io/api/v2/')
 			@api_key = api_key
 			@base_url = base_url
@@ -17,38 +19,44 @@ module Clubhouse
 		end
 
 		def api_request(method, *params)
-			response = HTTP.headers(content_type: 'application/json')
-			response.set_debug_output($stdout)
-			response = response.send(method, *params)
-			case response.code
-			when 429
-				sleep 30
-				api_request(method, *params)
-			when 200
-			when 201
+			if method == :post
+				api_params = *params
+				ap api_params
+				response = HTTParty.post(
+						api_params[:url],
+					 :body => api_params.to_json,
+				   :headers => { 'Content-Type' => 'application/json' }
+				)
+				case response.code
+				when 429
+					sleep 30
+					post_api_request(url, *params)
+				when 200
+					puts "Got it"
+					ap response
+				when 201
+				else
+					raise ClubhouseAPIError.new(response)
+				end
 			else
-				raise ClubhouseAPIError.new(response)
+				response = HTTP.headers(content_type: 'application/json')
+				response.set_debug_output($stdout)
+				response = response.send(method, *params)
+				case response.code
+				when 429
+					sleep 30
+					api_request(method, *params)
+				when 200
+				when 201
+				else
+					raise ClubhouseAPIError.new(response)
+				end
 			end
-
 			response
 		end
 		
 		def post_api_request(url, *params)
-			response = HTTParty.post(url, 
-    			:body => *params.to_json,
-    			:headers => { 'Content-Type' => 'application/json' },
-				:debug_output => $stdout))
-			case response.code
-			when 429
-				sleep 30
-				post_api_request(url, *params)
-			when 200
-				puts "Got it"
-				ap response
-			when 201
-			else
-				raise ClubhouseAPIError.new(response)
-			end
+
 
 			response
 		end
