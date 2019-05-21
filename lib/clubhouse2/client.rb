@@ -1,9 +1,11 @@
 require 'http'
 require 'uri'
 require 'json'
+require 'httparty'
 
 module Clubhouse
 	class Client
+		
 		def initialize(api_key:, base_url: 'https://api.clubhouse.io/api/v2/')
 			@api_key = api_key
 			@base_url = base_url
@@ -18,6 +20,24 @@ module Clubhouse
 			response = HTTP.headers(content_type: 'application/json')
 			response.set_debug_output($stdout)
 			response = response.send(method, *params)
+			case response.code
+			when 429
+				sleep 30
+				api_request(method, *params)
+			when 200
+			when 201
+			else
+				raise ClubhouseAPIError.new(response)
+			end
+
+			response
+		end
+		
+		def post_api_request(url, *params)
+			response = HTTParty.post(url, 
+    			:body => *params.to_json,
+    			:headers => { 'Content-Type' => 'application/json' },
+				:debug_output => $stdout))
 			case response.code
 			when 429
 				sleep 30
@@ -52,7 +72,7 @@ module Clubhouse
 			this_class.validate(args)
 			flush(this_class)
 			new_params = args.compact.reject { |k, v| this_class.property_filter_create.include? k.to_sym }
-			response = api_request(:post, url(this_class.api_url), :json => new_params)
+			response = post_api_request(url(this_class.api_url), new_params)
 			JSON.parse(response.to_s)
 		end
 
