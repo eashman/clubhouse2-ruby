@@ -41,8 +41,10 @@ module Clubhouse
 			case response.code
 			when 429
 				sleep 30
-				api_request(method, *params)
+				post_api_request(url, *params)
 			when 200
+				puts "Got it"
+				ap response
 			when 201
 			else
 				raise ClubhouseAPIError.new(response)
